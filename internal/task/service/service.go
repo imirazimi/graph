@@ -6,7 +6,7 @@ import (
     "time"
 
     "github.com/google/uuid"
-    "github.com/imirazimi/graph/internal/task/model"
+    "github.com/imirazimi/graph/internal/task/entity"
     "github.com/imirazimi/graph/internal/task/repository"
 )
 
@@ -15,10 +15,10 @@ var (
 )
 
 type TaskService interface {
-    Create(ctx context.Context, task *model.Task) error
-    GetByID(ctx context.Context, id uuid.UUID) (*model.Task, error)
-    List(ctx context.Context, filter repository.TaskFilter) ([]model.Task, error)
-    Update(ctx context.Context, task *model.Task) error
+    Create(ctx context.Context, task *entity.Task) error
+    GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, error)
+    List(ctx context.Context, filter repository.TaskFilter) ([]entity.Task, error)
+    Update(ctx context.Context, task *entity.Task) error
     Delete(ctx context.Context, id uuid.UUID) error
 }
 
@@ -26,11 +26,11 @@ type service struct {
     repo repository.TaskRepository
 }
 
-func NewTaskService(repo repository.TaskRepository) TaskService {
+func NewService(repo repository.TaskRepository) TaskService {
     return &service{repo: repo}
 }
 
-func (s *service) Create(ctx context.Context, task *model.Task) error {
+func (s *service) Create(ctx context.Context, task *entity.Task) error {
     task.ID = uuid.New()
     task.CreatedAt = time.Now()
     task.UpdatedAt = time.Now()
@@ -38,7 +38,7 @@ func (s *service) Create(ctx context.Context, task *model.Task) error {
     return s.repo.Create(ctx, task)
 }
 
-func (s *service) GetByID(ctx context.Context, id uuid.UUID) (*model.Task, error) {
+func (s *service) GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, error) {
     task, err := s.repo.GetByID(ctx, id)
     if err != nil {
         return nil, ErrTaskNotFound
@@ -47,7 +47,7 @@ func (s *service) GetByID(ctx context.Context, id uuid.UUID) (*model.Task, error
     return task, nil
 }
 
-func (s *service) List(ctx context.Context, filter repository.TaskFilter) ([]model.Task, error) {
+func (s *service) List(ctx context.Context, filter repository.TaskFilter) ([]entity.Task, error) {
     if filter.Limit <= 0 {
         filter.Limit = 10
     }
@@ -55,7 +55,7 @@ func (s *service) List(ctx context.Context, filter repository.TaskFilter) ([]mod
     return s.repo.List(ctx, filter)
 }
 
-func (s *service) Update(ctx context.Context, task *model.Task) error {
+func (s *service) Update(ctx context.Context, task *entity.Task) error {
     existingTask, err := s.repo.GetByID(ctx, task.ID)
     if err != nil {
         return ErrTaskNotFound

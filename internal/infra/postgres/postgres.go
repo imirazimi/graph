@@ -7,8 +7,12 @@ import (
 
     "github.com/jackc/pgx/v5/pgxpool"
 )
+type Connection struct {
+    *pgxpool.Pool
+}
 
-func NewPostgresConnection(databaseURL string) *pgxpool.Pool {
+
+func NewConnection(databaseURL string) Connection {
     ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
     defer cancel()
 
@@ -33,5 +37,7 @@ func NewPostgresConnection(databaseURL string) *pgxpool.Pool {
 
     log.Println("postgres connected successfully")
 
-    return pool
+    return Connection {
+        pool,
+    }
 }

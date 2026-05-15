@@ -1,25 +1,17 @@
 package main
 
 import (
-    "log"
-
     "github.com/imirazimi/graph/config"
-    apphttp "github.com/imirazimi/graph/internal/task/handler"
     "github.com/imirazimi/graph/internal/infra/postgres"
-    "fmt"
+    "github.com/imirazimi/graph/internal/infra/gin"
+    "github.com/imirazimi/graph/internal/task"
 )
 
 func main() {
     cfg := config.LoadConfig()
-
-    db := postgres.NewPostgresConnection(cfg.DatabaseURL())
-    defer db.Close()
-
-    router := apphttp.SetupRouter()
-
-    log.Printf("server started on port %s", cfg.AppPort)
-
-    if err := router.Run(":" + cfg.AppPort); err != nil {
-        log.Fatal(err)
-    }
+    task.NewApp(
+        ginrouter.NewRouter(cfg.AppPort),
+        postgres.NewConnection(cfg.DatabaseURL()),
+        cfg,
+    ).Serve()
 }

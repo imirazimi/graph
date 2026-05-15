@@ -6,16 +6,16 @@ import (
     "strings"
 
     "github.com/google/uuid"
-    "github.com/jackc/pgx/v5/pgxpool"
     "github.com/imirazimi/graph/internal/task/entity"
+    "github.com/imirazimi/graph/internal/infra/postgres"
 )
 
 type postgresRepository struct {
-    db *pgxpool.Pool
+    conn postgres.Connection
 }
 
-func NewPostgresRepository(db *pgxpool.Pool) TaskRepository {
-    return &postgresRepository{db: db}
+func NewRepository(conn postgres.Connection) TaskRepository {
+    return &postgresRepository{conn: conn}
 }
 
 func (r *postgresRepository) Create(ctx context.Context, task *entity.Task) error {
@@ -31,7 +31,7 @@ func (r *postgresRepository) Create(ctx context.Context, task *entity.Task) erro
         ) VALUES ($1,$2,$3,$4,$5,$6,$7)
     `
 
-    _, err := r.db.Exec(
+    _, err := r.conn.Exec(
         ctx,
         query,
         task.ID,
@@ -62,7 +62,7 @@ func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity
 
     var task entity.Task
 
-    err := r.db.QueryRow(ctx, query, id).Scan(
+    err := r.conn.QueryRow(ctx, query, id).Scan(
         &task.ID,
         &task.Title,
         &task.Description,
@@ -117,7 +117,7 @@ func (r *postgresRepository) List(ctx context.Context, filter TaskFilter) ([]ent
     args = append(args, filter.Limit)
     args = append(args, filter.Offset)
 
-    rows, err := r.db.Query(ctx, baseQuery, args...)
+    rows, err := r.conn.Query(ctx, baseQuery, args...)
     if err != nil {
         return nil, err
     }
@@ -160,7 +160,7 @@ func (r *postgresRepository) Update(ctx context.Context, task *entity.Task) erro
         WHERE id = $1
     `
 
-    _, err := r.db.Exec(
+    _, err := r.conn.Exec(
         ctx,
         query,
         task.ID,
@@ -177,7 +177,7 @@ func (r *postgresRepository) Update(ctx context.Context, task *entity.Task) erro
 func (r *postgresRepository) Delete(ctx context.Context, id uuid.UUID) error {
     query := `DELETE FROM tasks WHERE id = $1`
 
-    _, err := r.db.Exec(ctx, query, id)
+    _, err := r.conn.Exec(ctx, query, id)
 
     return err
 }

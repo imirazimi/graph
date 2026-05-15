@@ -20,13 +20,13 @@ type Config struct {
     DBSSLMode  string
 }
 
-func LoadConfig() *Config {
+func LoadConfig() Config {
     err := godotenv.Load()
     if err != nil {
         log.Println("warning: .env file not found")
     }
 
-    return &Config{
+    return Config{
         AppPort: getEnv("APP_PORT", "8080"),
         AppEnv:  getEnv("APP_ENV", "development"),
 
