@@ -1,0 +1,183 @@
+package repository
+
+import (
+    "context"
+    "fmt"
+    "strings"
+
+    "github.com/google/uuid"
+    "github.com/jackc/pgx/v5/pgxpool"
+    "github.com/imirazimi/graph/internal/task/entity"
+)
+
+type postgresRepository struct {
+    db *pgxpool.Pool
+}
+
+func NewPostgresRepository(db *pgxpool.Pool) TaskRepository {
+    return &postgresRepository{db: db}
+}
+
+func (r *postgresRepository) Create(ctx context.Context, task *entity.Task) error {
+    query := `
+        INSERT INTO tasks (
+            id,
+            title,
+            description,
+            status,
+            assignee,
+            created_at,
+            updated_at
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7)
+    `
+
+    _, err := r.db.Exec(
+        ctx,
+        query,
+        task.ID,
+        task.Title,
+        task.Description,
+        task.Status,
+        task.Assignee,
+        task.CreatedAt,
+        task.UpdatedAt,
+    )
+
+    return err
+}
+
+func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, error) {
+    query := `
+        SELECT
+            id,
+            title,
+            description,
+            status,
+            assignee,
+            created_at,
+            updated_at
+        FROM tasks
+        WHERE id = $1
+    `
+
+    var task entity.Task
+
+    err := r.db.QueryRow(ctx, query, id).Scan(
+        &task.ID,
+        &task.Title,
+        &task.Description,
+        &task.Status,
+        &task.Assignee,
+        &task.CreatedAt,
+        &task.UpdatedAt,
+    )
+
+    if err != nil {
+        return nil, err
+    }
+
+    return &task, nil
+}
+
+func (r *postgresRepository) List(ctx context.Context, filter TaskFilter) ([]entity.Task, error) {
+    baseQuery := `
+        SELECT
+            id,
+            title,
+            description,
+            status,
+            assignee,
+            created_at,
+            updated_at
+        FROM tasks
+    `
+
+    conditions := []string{}
+    args := []interface{}{}
+    argIndex := 1
+
+    if filter.Status != "" {
+        conditions = append(conditions, fmt.Sprintf("status = $%d", argIndex))
+        args = append(args, filter.Status)
+        argIndex++
+    }
+
+    if filter.Assignee != "" {
+        conditions = append(conditions, fmt.Sprintf("assignee = $%d", argIndex))
+        args = append(args, filter.Assignee)
+        argIndex++
+    }
+
+    if len(conditions) > 0 {
+        baseQuery += " WHERE " + strings.Join(conditions, " AND ")
+    }
+
+    baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+
+    args = append(args, filter.Limit)
+    args = append(args, filter.Offset)
+
+    rows, err := r.db.Query(ctx, baseQuery, args...)
+    if err != nil {
+        return nil, err
+    }
+    defer rows.Close()
+
+    var tasks []entity.Task
+
+    for rows.Next() {
+        var task entity.Task
+
+        err := rows.Scan(
+            &task.ID,
+            &task.Title,
+            &task.Description,
+            &task.Status,
+            &task.Assignee,
+            &task.CreatedAt,
+            &task.UpdatedAt,
+        )
+
+        if err != nil {
+            return nil, err
+        }
+
+        tasks = append(tasks, task)
+    }
+
+    return tasks, nil
+}
+
+func (r *postgresRepository) Update(ctx context.Context, task *entity.Task) error {
+    query := `
+        UPDATE tasks
+        SET
+            title = $2,
+            description = $3,
+            status = $4,
+            assignee = $5,
+            updated_at = $6
+        WHERE id = $1
+    `
+
+    _, err := r.db.Exec(
+        ctx,
+        query,
+        task.ID,
+        task.Title,
+        task.Description,
+        task.Status,
+        task.Assignee,
+        task.UpdatedAt,
+    )
+
+    return err
+}
+
+func (r *postgresRepository) Delete(ctx context.Context, id uuid.UUID) error {
+    query := `DELETE FROM tasks WHERE id = $1`
+
+    _, err := r.db.Exec(ctx, query, id)
+
+    return err
+}
