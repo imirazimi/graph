@@ -10,6 +10,7 @@ import (
     "github.com/imirazimi/graph/internal/task/entity"
     "github.com/imirazimi/graph/internal/task/repository"
     "github.com/imirazimi/graph/internal/task/service"
+
 )
 
 type Handler struct {
@@ -20,10 +21,17 @@ func NewHandler(service service.TaskService) Handler {
     return Handler{service: service}
 }
 
-func (h *Handler) RegisterRoutes(router *gin.Engine) {
-    
-}
 
+// Create godoc
+// @Summary Create task
+// @Description Create a new task
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param task body dto.CreateTaskRequest true "Task payload"
+// @Success 201 {object} entity.Task
+// @Failure 400 {object} map[string]interface{}
+// @Router /tasks [post]
 func (h *Handler) Create(c *gin.Context) {
     var req dto.CreateTaskRequest
 
@@ -52,6 +60,15 @@ func (h *Handler) Create(c *gin.Context) {
     c.JSON(http.StatusCreated, task)
 }
 
+
+// GetByID godoc
+// @Summary Get task
+// @Tags tasks
+// @Produce json
+// @Param id path string true "Task ID"
+// @Success 200 {object} entity.Task
+// @Failure 404 {object} map[string]interface{}
+// @Router /tasks/{id} [get]
 func (h *Handler) GetByID(c *gin.Context) {
     idParam := c.Param("id")
 
@@ -74,6 +91,17 @@ func (h *Handler) GetByID(c *gin.Context) {
     c.JSON(http.StatusOK, task)
 }
 
+
+// List godoc
+// @Summary List tasks
+// @Tags tasks
+// @Produce json
+// @Param status query string false "Filter by status"
+// @Param assignee query string false "Filter by assignee"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Success 200 {object} map[string]interface{}
+// @Router /tasks [get]
 func (h *Handler) List(c *gin.Context) {
     page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
     limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
@@ -102,6 +130,15 @@ func (h *Handler) List(c *gin.Context) {
     })
 }
 
+// Update godoc
+// @Summary Update task
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param id path string true "Task ID"
+// @Param task body dto.UpdateTaskRequest true "Task payload"
+// @Success 200 {object} map[string]interface{}
+// @Router /tasks/{id} [put]
 func (h *Handler) Update(c *gin.Context) {
     idParam := c.Param("id")
 
@@ -143,6 +180,13 @@ func (h *Handler) Update(c *gin.Context) {
     })
 }
 
+// Delete godoc
+// @Summary Delete task
+// @Tags tasks
+// @Produce json
+// @Param id path string true "Task ID"
+// @Success 200 {object} map[string]interface{}
+// @Router /tasks/{id} [delete]
 func (h *Handler) Delete(c *gin.Context) {
     idParam := c.Param("id")
 

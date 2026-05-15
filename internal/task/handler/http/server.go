@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"github.com/imirazimi/graph/internal/infra/gin"
+	swaggerFiles "github.com/swaggo/files"
+    ginSwagger "github.com/swaggo/gin-swagger"
 	"fmt"
 	"os"
 	"time"
@@ -34,6 +36,9 @@ func (s *Server) RegisterRoutes() {
             "status": "ok",
         })
     })
+	
+	s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 
     tasks := s.router.Group("/tasks")
 
