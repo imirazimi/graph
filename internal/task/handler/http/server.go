@@ -6,6 +6,8 @@ import (
 	"github.com/imirazimi/graph/internal/infra/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
+    "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
     ginSwagger "github.com/swaggo/gin-swagger"
 	"fmt"
 	"os"
@@ -40,7 +42,9 @@ func (s *Server) RegisterRoutes() {
             "status": "ok",
         })
     })
-
+	
+	s.router.Use(otelgin.Middleware("task-manager"))
+	
 	s.router.Use(MetricMiddleware())
 
 	s.router.GET("/metrics", gin.WrapH(promhttp.Handler()))

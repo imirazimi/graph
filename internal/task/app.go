@@ -6,6 +6,8 @@ import (
 	"github.com/imirazimi/graph/internal/task/service"
 	"github.com/imirazimi/graph/internal/task/repository"
 	"github.com/imirazimi/graph/internal/task/handler/http"
+	"context"
+	"github.com/imirazimi/graph/internal/infra/tracing"
 	"github.com/imirazimi/graph/config"
 )
 
@@ -30,5 +32,8 @@ func NewApp(router ginrouter.Router,postgres postgres.Connection,cfg config.Conf
 }
 
 func (a App) Serve () {
+	shutdown := tracing.InitTracer()
+    defer shutdown(context.Background())
+	
 	a.server.Serve()
 }
