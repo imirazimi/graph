@@ -4,6 +4,7 @@ import (
     "github.com/imirazimi/graph/config"
     "github.com/imirazimi/graph/internal/infra/postgres"
     "github.com/imirazimi/graph/internal/infra/gin"
+    "github.com/imirazimi/graph/internal/infra/redis"
     "github.com/imirazimi/graph/internal/task"
     _ "github.com/imirazimi/graph/docs"
 )
@@ -19,6 +20,7 @@ func main() {
     task.NewApp(
         ginrouter.NewRouter(cfg.AppPort),
         postgres.NewConnection(cfg.DatabaseURL()),
+        redis.NewRedisClient(),
         cfg,
     ).Serve()
 }

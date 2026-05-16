@@ -93,42 +93,51 @@ func (h *Handler) GetByID(c *gin.Context) {
 
 
 // List godoc
-// @Summary List tasks
-// @Tags tasks
-// @Produce json
-// @Param status query string false "Filter by status"
-// @Param assignee query string false "Filter by assignee"
-// @Param page query int false "Page"
-// @Param limit query int false "Limit"
-// @Success 200 {object} map[string]interface{}
-// @Router /tasks [get]
+// @Summary      List tasks
+// @Description  Get paginated list of tasks with optional filters
+// @Tags         tasks
+// @Produce      json
+// @Param        status    query     string  false  "Filter by status"
+// @Param        assignee  query     string  false  "Filter by assignee"
+// @Param        page      query     int     false  "Page number (default: 1)"
+// @Param        limit     query     int     false  "Items per page (default: 10)"
+// @Success      200       {object}  TaskListResponse
+// @Failure      500       {object}  map[string]string
+// @Router       /tasks [get]
 func (h *Handler) List(c *gin.Context) {
-    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-    limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
 
-    offset := (page - 1) * limit
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if err != nil || limit < 1 {
+		limit = 10
+	}
 
-    filter := repository.TaskFilter{
-        Status:   c.Query("status"),
-        Assignee: c.Query("assignee"),
-        Limit:    limit,
-        Offset:   offset,
-    }
+	offset := (page - 1) * limit
 
-    tasks,total, err := h.service.List(c.Request.Context(), filter)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{
-            "error": err.Error(),
-        })
-        return
-    }
+	filter := repository.TaskFilter{
+		Status:   c.Query("status"),
+		Assignee: c.Query("assignee"),
+		Limit:    limit,
+		Offset:   offset,
+	}
 
-    c.JSON(http.StatusOK, gin.H{
-        "data": tasks,
-        "page": page,
-        "limit": limit,
-        "total":total,
-    })
+	tasks, total, err := h.service.List(c.Request.Context(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  tasks,
+		"page":  page,
+		"limit": limit,
+		"total": total,
+	})
 }
 
 // Update godoc

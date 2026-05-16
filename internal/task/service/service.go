@@ -51,16 +51,19 @@ func (s *service) GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, erro
     return task, nil
 }
 
-func (s *service) List(ctx context.Context, filter repository.TaskFilter) ([]entity.Task,int64, error) {
-    if filter.Limit <= 0 {
-        filter.Limit = 10
-    }
-    tasks,total,err := s.repo.List(ctx, filter)
-    if err != nil {
-        return []entity.Task{},0,err
-    }
-    metric.TasksCount.Set(float64(total))
-    return tasks,total,err
+func (s *service) List(ctx context.Context, filter repository.TaskFilter) ([]entity.Task, int64, error) {
+	if filter.Limit <= 0 {
+		filter.Limit = 10
+	}
+
+	tasks, total, err := s.repo.List(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	metric.TasksCount.Set(float64(total))
+
+	return tasks, total, nil
 }
 
 func (s *service) Update(ctx context.Context, task *entity.Task) error {

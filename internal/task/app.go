@@ -2,6 +2,7 @@ package task
 
 import (
 	"github.com/imirazimi/graph/internal/infra/gin"
+	"github.com/imirazimi/graph/internal/infra/redis"
 	"github.com/imirazimi/graph/internal/infra/postgres"
 	"github.com/imirazimi/graph/internal/task/service"
 	"github.com/imirazimi/graph/internal/task/repository"
@@ -16,14 +17,17 @@ type App struct {
 }
 
 
-func NewApp(router ginrouter.Router,postgres postgres.Connection,cfg config.Config) App {
+func NewApp(router ginrouter.Router,postgres postgres.Connection,redis redis.RedisClient,cfg config.Config) App {
 	return App {
 		handler.NewServer(
 			router,
 			handler.NewHandler(
 				service.NewService(
-					repository.NewRepository(
-						postgres,
+					repository.NewCacheRepository(
+						redis,
+						repository.NewRepository(
+							postgres,
+						),
 					),
 				),
 			),
