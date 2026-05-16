@@ -115,7 +115,7 @@ func (h *Handler) List(c *gin.Context) {
         Offset:   offset,
     }
 
-    tasks, err := h.service.List(c.Request.Context(), filter)
+    tasks,total, err := h.service.List(c.Request.Context(), filter)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{
             "error": err.Error(),
@@ -127,6 +127,7 @@ func (h *Handler) List(c *gin.Context) {
         "data": tasks,
         "page": page,
         "limit": limit,
+        "total":total,
     })
 }
 

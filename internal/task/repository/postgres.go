@@ -79,73 +79,95 @@ func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity
     return &task, nil
 }
 
-func (r *postgresRepository) List(ctx context.Context, filter TaskFilter) ([]entity.Task, error) {
-    baseQuery := `
-        SELECT
-            id,
-            title,
-            description,
-            status,
-            assignee,
-            created_at,
-            updated_at
-        FROM tasks
-    `
+func (r *postgresRepository) List(ctx context.Context, filter TaskFilter) ([]entity.Task, int64, error) {
 
-    conditions := []string{}
-    args := []interface{}{}
-    argIndex := 1
+	baseQuery := `
+		SELECT
+			id,
+			title,
+			description,
+			status,
+			assignee,
+			created_at,
+			updated_at
+		FROM tasks
+	`
 
-    if filter.Status != "" {
-        conditions = append(conditions, fmt.Sprintf("status = $%d", argIndex))
-        args = append(args, filter.Status)
-        argIndex++
-    }
+	countQuery := `
+		SELECT COUNT(*)
+		FROM tasks
+	`
 
-    if filter.Assignee != "" {
-        conditions = append(conditions, fmt.Sprintf("assignee = $%d", argIndex))
-        args = append(args, filter.Assignee)
-        argIndex++
-    }
+	conditions := []string{}
+	args := []interface{}{}
+	argIndex := 1
 
-    if len(conditions) > 0 {
-        baseQuery += " WHERE " + strings.Join(conditions, " AND ")
-    }
+	// filters
+	if filter.Status != "" {
+		conditions = append(conditions, fmt.Sprintf("status = $%d", argIndex))
+		args = append(args, filter.Status)
+		argIndex++
+	}
 
-    baseQuery += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+	if filter.Assignee != "" {
+		conditions = append(conditions, fmt.Sprintf("assignee = $%d", argIndex))
+		args = append(args, filter.Assignee)
+		argIndex++
+	}
 
-    args = append(args, filter.Limit)
-    args = append(args, filter.Offset)
+	// WHERE
+	if len(conditions) > 0 {
+		where := " WHERE " + strings.Join(conditions, " AND ")
+		baseQuery += where
+		countQuery += where
+	}
 
-    rows, err := r.conn.Query(ctx, baseQuery, args...)
-    if err != nil {
-        return nil, err
-    }
-    defer rows.Close()
+	// pagination only for data query
+	baseQuery += fmt.Sprintf(
+		" ORDER BY created_at DESC LIMIT $%d OFFSET $%d",
+		argIndex,
+		argIndex+1,
+	)
 
-    var tasks []entity.Task
+	argsForData := append([]interface{}{}, args...)
+	argsForData = append(argsForData, filter.Limit, filter.Offset)
 
-    for rows.Next() {
-        var task entity.Task
+	// 1) get total
+	var total int64
+	err := r.conn.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
 
-        err := rows.Scan(
-            &task.ID,
-            &task.Title,
-            &task.Description,
-            &task.Status,
-            &task.Assignee,
-            &task.CreatedAt,
-            &task.UpdatedAt,
-        )
+	// 2) get data
+	rows, err := r.conn.Query(ctx, baseQuery, argsForData...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
 
-        if err != nil {
-            return nil, err
-        }
+	var tasks []entity.Task
 
-        tasks = append(tasks, task)
-    }
+	for rows.Next() {
+		var task entity.Task
 
-    return tasks, nil
+		err := rows.Scan(
+			&task.ID,
+			&task.Title,
+			&task.Description,
+			&task.Status,
+			&task.Assignee,
+			&task.CreatedAt,
+			&task.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		tasks = append(tasks, task)
+	}
+
+	return tasks, total, nil
 }
 
 func (r *postgresRepository) Update(ctx context.Context, task *entity.Task) error {

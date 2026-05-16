@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"github.com/imirazimi/graph/internal/infra/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
     ginSwagger "github.com/swaggo/gin-swagger"
 	"fmt"
@@ -31,14 +32,18 @@ func NewServer(router ginrouter.Router, handler Handler) Server {
 
 func (s *Server) RegisterRoutes() {
 	
+	
+	s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	s.router.GET("/health", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{
             "status": "ok",
         })
     })
-	
-	s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	s.router.Use(MetricMiddleware())
+
+	s.router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
     tasks := s.router.Group("/tasks")
 
