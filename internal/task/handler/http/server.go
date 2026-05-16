@@ -7,7 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
     "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-
+	"net/http/pprof"
     ginSwagger "github.com/swaggo/gin-swagger"
 	"fmt"
 	"os"
@@ -36,7 +36,14 @@ func (s *Server) RegisterRoutes() {
 	
 	
 	s.router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+    
+	pprofGroup := s.router.Group("/debug/pprof")
 
+    pprofGroup.GET("/", gin.WrapF(pprof.Index))
+    pprofGroup.GET("/heap", gin.WrapF(pprof.Handler("heap").ServeHTTP))
+    pprofGroup.GET("/goroutine", gin.WrapF(pprof.Handler("goroutine").ServeHTTP))
+    pprofGroup.GET("/profile", gin.WrapF(pprof.Profile))
+	
 	s.router.GET("/health", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{
             "status": "ok",

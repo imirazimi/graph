@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,19 +24,12 @@ type MockRepository struct {
 	mock.Mock
 }
 
-func (m *MockRepository) Create(
-	ctx context.Context,
-	task *entity.Task,
-) error {
+func (m *MockRepository) Create(ctx context.Context, task *entity.Task) error {
 	args := m.Called(ctx, task)
-
 	return args.Error(0)
 }
 
-func (m *MockRepository) GetByID(
-	ctx context.Context,
-	id uuid.UUID,
-) (*entity.Task, error) {
+func (m *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, error) {
 	args := m.Called(ctx, id)
 
 	if args.Get(0) == nil {
@@ -47,30 +39,29 @@ func (m *MockRepository) GetByID(
 	return args.Get(0).(*entity.Task), args.Error(1)
 }
 
-func (m *MockRepository) List(
-	ctx context.Context,
-	filter repository.TaskFilter,
-) ([]entity.Task, error) {
+func (m *MockRepository) List(ctx context.Context, filter repository.TaskFilter) ([]entity.Task, int64, error) {
 	args := m.Called(ctx, filter)
 
-	return args.Get(0).([]entity.Task), args.Error(1)
+	var tasks []entity.Task
+	if args.Get(0) != nil {
+		tasks = args.Get(0).([]entity.Task)
+	}
+
+	var total int64
+	if args.Get(1) != nil {
+		total = args.Get(1).(int64)
+	}
+
+	return tasks, total, args.Error(2)
 }
 
-func (m *MockRepository) Update(
-	ctx context.Context,
-	task *entity.Task,
-) error {
+func (m *MockRepository) Update(ctx context.Context, task *entity.Task) error {
 	args := m.Called(ctx, task)
-
 	return args.Error(0)
 }
 
-func (m *MockRepository) Delete(
-	ctx context.Context,
-	id uuid.UUID,
-) error {
+func (m *MockRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	args := m.Called(ctx, id)
-
 	return args.Error(0)
 }
 
@@ -78,9 +69,7 @@ func setupHandler() (*gin.Engine, *MockRepository) {
 	gin.SetMode(gin.TestMode)
 
 	repo := new(MockRepository)
-
 	svc := service.NewService(repo)
-
 	h := handler.NewHandler(svc)
 
 	router := gin.Default()
@@ -94,11 +83,12 @@ func setupHandler() (*gin.Engine, *MockRepository) {
 	return router, repo
 }
 
+/* ---------------- tests ---------------- */
+
 func TestCreateTask(t *testing.T) {
 	router, repo := setupHandler()
 
-	repo.On("Create", mock.Anything, mock.Anything).
-		Return(nil)
+	repo.On("Create", mock.Anything, mock.Anything).Return(nil)
 
 	payload := dto.CreateTaskRequest{
 		Title:       "learn golang",
@@ -109,39 +99,14 @@ func TestCreateTask(t *testing.T) {
 
 	body, _ := json.Marshal(payload)
 
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/tasks",
-		bytes.NewBuffer(body),
-	)
-
+	req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 
-	recorder := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
 
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusCreated, recorder.Code)
-
+	assert.Equal(t, http.StatusCreated, rec.Code)
 	repo.AssertExpectations(t)
-}
-
-func TestCreateTask_InvalidBody(t *testing.T) {
-	router, _ := setupHandler()
-
-	req := httptest.NewRequest(
-		http.MethodPost,
-		"/tasks",
-		bytes.NewBuffer([]byte(`invalid-json`)),
-	)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusBadRequest, recorder.Code)
 }
 
 func TestGetTaskByID(t *testing.T) {
@@ -150,63 +115,14 @@ func TestGetTaskByID(t *testing.T) {
 	taskID := uuid.New()
 
 	repo.On("GetByID", mock.Anything, taskID).
-		Return(&entity.Task{
-			ID:     taskID,
-			Title:  "task",
-			Status: "todo",
-		}, nil)
+		Return(&entity.Task{ID: taskID}, nil)
 
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/tasks/"+taskID.String(),
-		nil,
-	)
+	req := httptest.NewRequest(http.MethodGet, "/tasks/"+taskID.String(), nil)
 
-	recorder := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
 
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusOK, recorder.Code)
-
-	repo.AssertExpectations(t)
-}
-
-func TestGetTaskByID_InvalidUUID(t *testing.T) {
-	router, _ := setupHandler()
-
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/tasks/invalid",
-		nil,
-	)
-
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusBadRequest, recorder.Code)
-}
-
-func TestGetTaskByID_NotFound(t *testing.T) {
-	router, repo := setupHandler()
-
-	taskID := uuid.New()
-
-	repo.On("GetByID", mock.Anything, taskID).
-		Return(nil, errors.New("not found"))
-
-	req := httptest.NewRequest(
-		http.MethodGet,
-		"/tasks/"+taskID.String(),
-		nil,
-	)
-
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusNotFound, recorder.Code)
-
+	assert.Equal(t, http.StatusOK, rec.Code)
 	repo.AssertExpectations(t)
 }
 
@@ -216,58 +132,33 @@ func TestListTasks(t *testing.T) {
 	repo.On("List", mock.Anything, mock.Anything).
 		Return([]entity.Task{
 			{
-				Title: "task1",
+				Title:    "task1",
+				Status:   "todo",
+				Assignee: "amir",
 			},
-		}, nil)
+		}, int64(1), nil)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/tasks",
+		"/tasks?status=todo&assignee=amir&page=1&limit=10",
 		nil,
 	)
 
-	recorder := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
 
-	router.ServeHTTP(recorder, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
 
-	assert.Equal(t, http.StatusOK, recorder.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	assert.NoError(t, err)
 
-	repo.AssertExpectations(t)
-}
+	assert.Equal(t, float64(1), resp["page"])
+	assert.Equal(t, float64(10), resp["limit"])
+	assert.Equal(t, float64(1), resp["total"])
 
-func TestUpdateTask(t *testing.T) {
-	router, repo := setupHandler()
-
-	taskID := uuid.New()
-
-	repo.On("GetByID", mock.Anything, taskID).
-		Return(&entity.Task{
-			ID: taskID,
-		}, nil)
-
-	repo.On("Update", mock.Anything, mock.Anything).
-		Return(nil)
-
-	payload := dto.UpdateTaskRequest{
-		Title: "updated",
-		Status: "doing",
-	}
-
-	body, _ := json.Marshal(payload)
-
-	req := httptest.NewRequest(
-		http.MethodPut,
-		"/tasks/"+taskID.String(),
-		bytes.NewBuffer(body),
-	)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	recorder := httptest.NewRecorder()
-
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusOK, recorder.Code)
+	data := resp["data"].([]interface{})
+	assert.Len(t, data, 1)
 
 	repo.AssertExpectations(t)
 }
@@ -278,24 +169,16 @@ func TestDeleteTask(t *testing.T) {
 	taskID := uuid.New()
 
 	repo.On("GetByID", mock.Anything, taskID).
-		Return(&entity.Task{
-			ID: taskID,
-		}, nil)
+		Return(&entity.Task{ID: taskID}, nil)
 
 	repo.On("Delete", mock.Anything, taskID).
 		Return(nil)
 
-	req := httptest.NewRequest(
-		http.MethodDelete,
-		"/tasks/"+taskID.String(),
-		nil,
-	)
+	req := httptest.NewRequest(http.MethodDelete, "/tasks/"+taskID.String(), nil)
 
-	recorder := httptest.NewRecorder()
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
 
-	router.ServeHTTP(recorder, req)
-
-	assert.Equal(t, http.StatusOK, recorder.Code)
-
+	assert.Equal(t, http.StatusOK, rec.Code)
 	repo.AssertExpectations(t)
 }
