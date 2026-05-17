@@ -9,9 +9,9 @@ import (
 type RedisClient struct {
     *redis.Client
 }
-func NewRedisClient() RedisClient {
+func NewClient(CacheURL string) RedisClient {
     client := redis.NewClient(&redis.Options{
-        Addr: "localhost:6379",
+        Addr: CacheURL,
     })
 
     err := client.Ping(context.Background()).Err()

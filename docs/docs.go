@@ -17,6 +17,7 @@ const docTemplate = `{
     "paths": {
         "/tasks": {
             "get": {
+                "description": "Get paginated list of tasks with optional filters",
                 "produces": [
                     "application/json"
                 ],
@@ -39,13 +40,13 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "Page",
+                        "description": "Page number (default: 1)",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Limit",
+                        "description": "Items per page (default: 10)",
                         "name": "limit",
                         "in": "query"
                     }
@@ -56,6 +57,15 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }

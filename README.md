@@ -21,7 +21,7 @@ Production-grade Golang task manager service.
 
 ```bash
 cp .env.example .env
-docker compose up --build
+make docker-compose-buildup
 ```
 
 ---
@@ -29,10 +29,7 @@ docker compose up --build
 ## Run Migrations
 
 ```bash
-migrate \
--path migrations \
--database "postgres://postgres:postgres@localhost:5432/task_manager?sslmode=disable" \
-up
+make migrate-up
 ```
 
 ---
@@ -40,7 +37,7 @@ up
 ## Run Tests
 
 ```bash
-go test ./...
+make test
 ```
 
 ---
@@ -48,8 +45,7 @@ go test ./...
 ## Generate Coverage
 
 ```bash
-go test ./... -coverprofile=coverage.out
-go tool cover -func=coverage.out
+make coverage
 ```
 
 ---
@@ -97,20 +93,47 @@ Gin --> OpenTelemetry;
 
 ## Example Request
 
+
+### Create Task
+
 ```bash
 curl --location 'localhost:8080/tasks' \
 --header 'Content-Type: application/json' \
 --data '{
-    "title": "learn golang",
-    "description": "practice gin",
-    "status": "todo",
-    "assignee": "amir"
+    "title":"learn golang",
+    "description":"practice gin",
+    "status":"todo",
+    "assignee":"amir"
 }'
 ```
 
----
+### List Tasks
 
-## Tradeoffs
+```bash
+curl localhost:8080/tasks
+```
 
-- In-memory tracing exporter for interview simplicity
-- Cache invalidation strategy optimized for list endpoint
+### Get Task
+
+```bash
+curl localhost:8080/tasks/{task_id}
+```
+
+### Update Task
+
+```bash
+curl --location --request PUT 'localhost:8080/tasks/{task_id}' \
+--header 'Content-Type: application/json' \
+--data '{
+    "title":"advanced golang",
+    "description":"learn clean architecture",
+    "status":"doing",
+    "assignee":"amir"
+}'
+```
+
+### Delete Task
+
+```bash
+curl --location --request DELETE 'localhost:8080/tasks/{task_id}'
+```

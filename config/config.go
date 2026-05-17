@@ -18,6 +18,9 @@ type Config struct {
     DBPassword string
     DBName     string
     DBSSLMode  string
+
+    CacheHost  string
+    CachePort  string
 }
 
 func LoadConfig() Config {
@@ -36,6 +39,9 @@ func LoadConfig() Config {
         DBPassword: getEnv("DB_PASSWORD", "postgres"),
         DBName:     getEnv("DB_NAME", "task_manager"),
         DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
+
+        CacheHost:  getEnv("CACHE_HOST", "localhost"),
+        CachePort:  getEnv("CACHE_PORT", "6379"),
     }
 }
 
@@ -50,7 +56,13 @@ func (c *Config) DatabaseURL() string {
         c.DBSSLMode,
     )
 }
-
+func (c *Config) CacheURL() string {
+    return fmt.Sprintf(
+        "%s:%s",
+        c.CacheHost,
+        c.CachePort,
+    )
+}
 func getEnv(key, fallback string) string {
     value := os.Getenv(key)
     if value == "" {

@@ -17,10 +17,10 @@ import (
 
 func main() {
     cfg := config.LoadConfig()
-    task.NewApp(
+    task.ServeApp(
         ginrouter.NewRouter(cfg.AppPort),
         postgres.NewConnection(cfg.DatabaseURL()),
-        redis.NewRedisClient(),
+        redis.NewClient(cfg.CacheURL()),
         cfg,
-    ).Serve()
+    )
 }

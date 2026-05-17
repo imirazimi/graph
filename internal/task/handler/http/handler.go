@@ -101,7 +101,7 @@ func (h *Handler) GetByID(c *gin.Context) {
 // @Param        assignee  query     string  false  "Filter by assignee"
 // @Param        page      query     int     false  "Page number (default: 1)"
 // @Param        limit     query     int     false  "Items per page (default: 10)"
-// @Success      200       {object}  TaskListResponse
+// @Success      200       {object}  map[string]interface{}
 // @Failure      500       {object}  map[string]string
 // @Router       /tasks [get]
 func (h *Handler) List(c *gin.Context) {
