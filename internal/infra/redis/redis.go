@@ -1,25 +1,27 @@
 package redis
 
 import (
-    "context"
-    "log"
+	"context"
+	"log"
 
-    "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 )
+
 type RedisClient struct {
-    *redis.Client
+	*redis.Client
 }
+
 func NewClient(CacheURL string) RedisClient {
-    client := redis.NewClient(&redis.Options{
-        Addr: CacheURL,
-    })
+	client := redis.NewClient(&redis.Options{
+		Addr: CacheURL,
+	})
 
-    err := client.Ping(context.Background()).Err()
-    if err != nil {
-        log.Fatalf("failed to connect redis: %v", err)
-    }
+	err := client.Ping(context.Background()).Err()
+	if err != nil {
+		log.Fatalf("failed to connect redis: %v", err)
+	}
 
-    log.Println("redis connected successfully")
+	log.Println("redis connected successfully")
 
-    return RedisClient{client}
+	return RedisClient{client}
 }

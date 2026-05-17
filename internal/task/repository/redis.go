@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/imirazimi/graph/internal/task/entity"
 	"github.com/imirazimi/graph/internal/infra/redis"
+	"github.com/imirazimi/graph/internal/task/entity"
 )
 
 type cacheRepository struct {

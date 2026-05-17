@@ -1,26 +1,26 @@
 package task
 
 import (
-	"github.com/imirazimi/graph/internal/infra/gin"
-	"github.com/imirazimi/graph/internal/infra/redis"
-	"github.com/imirazimi/graph/internal/infra/postgres"
-	"github.com/imirazimi/graph/internal/task/service"
-	"github.com/imirazimi/graph/internal/task/repository"
-	"github.com/imirazimi/graph/internal/task/handler/http"
 	"context"
-	"time"
 	"fmt"
-	"os/signal"
+	"github.com/imirazimi/graph/internal/infra/gin"
+	"github.com/imirazimi/graph/internal/infra/postgres"
+	"github.com/imirazimi/graph/internal/infra/redis"
+	"github.com/imirazimi/graph/internal/task/handler/http"
+	"github.com/imirazimi/graph/internal/task/repository"
+	"github.com/imirazimi/graph/internal/task/service"
 	"net/http"
 	"os"
+	"os/signal"
 	"syscall"
+	"time"
 
-	"github.com/imirazimi/graph/internal/infra/tracing"
 	"github.com/imirazimi/graph/config"
+	"github.com/imirazimi/graph/internal/infra/tracing"
 )
 
 type App struct {
-	Server  handler.Server
+	Server handler.Server
 }
 
 func ServeApp(

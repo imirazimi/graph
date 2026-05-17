@@ -1,25 +1,25 @@
 package repository
 
 import (
-    "context"
-    "fmt"
-    "strings"
+	"context"
+	"fmt"
+	"strings"
 
-    "github.com/google/uuid"
-    "github.com/imirazimi/graph/internal/task/entity"
-    "github.com/imirazimi/graph/internal/infra/postgres"
+	"github.com/google/uuid"
+	"github.com/imirazimi/graph/internal/infra/postgres"
+	"github.com/imirazimi/graph/internal/task/entity"
 )
 
 type postgresRepository struct {
-    conn postgres.Connection
+	conn postgres.Connection
 }
 
 func NewRepository(conn postgres.Connection) TaskRepository {
-    return &postgresRepository{conn: conn}
+	return &postgresRepository{conn: conn}
 }
 
 func (r *postgresRepository) Create(ctx context.Context, task *entity.Task) error {
-    query := `
+	query := `
         INSERT INTO tasks (
             id,
             title,
@@ -31,23 +31,23 @@ func (r *postgresRepository) Create(ctx context.Context, task *entity.Task) erro
         ) VALUES ($1,$2,$3,$4,$5,$6,$7)
     `
 
-    _, err := r.conn.Exec(
-        ctx,
-        query,
-        task.ID,
-        task.Title,
-        task.Description,
-        task.Status,
-        task.Assignee,
-        task.CreatedAt,
-        task.UpdatedAt,
-    )
+	_, err := r.conn.Exec(
+		ctx,
+		query,
+		task.ID,
+		task.Title,
+		task.Description,
+		task.Status,
+		task.Assignee,
+		task.CreatedAt,
+		task.UpdatedAt,
+	)
 
-    return err
+	return err
 }
 
 func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Task, error) {
-    query := `
+	query := `
         SELECT
             id,
             title,
@@ -60,23 +60,23 @@ func (r *postgresRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity
         WHERE id = $1
     `
 
-    var task entity.Task
+	var task entity.Task
 
-    err := r.conn.QueryRow(ctx, query, id).Scan(
-        &task.ID,
-        &task.Title,
-        &task.Description,
-        &task.Status,
-        &task.Assignee,
-        &task.CreatedAt,
-        &task.UpdatedAt,
-    )
+	err := r.conn.QueryRow(ctx, query, id).Scan(
+		&task.ID,
+		&task.Title,
+		&task.Description,
+		&task.Status,
+		&task.Assignee,
+		&task.CreatedAt,
+		&task.UpdatedAt,
+	)
 
-    if err != nil {
-        return nil, err
-    }
+	if err != nil {
+		return nil, err
+	}
 
-    return &task, nil
+	return &task, nil
 }
 
 func (r *postgresRepository) List(ctx context.Context, filter TaskFilter) ([]entity.Task, int64, error) {
@@ -171,7 +171,7 @@ func (r *postgresRepository) List(ctx context.Context, filter TaskFilter) ([]ent
 }
 
 func (r *postgresRepository) Update(ctx context.Context, task *entity.Task) error {
-    query := `
+	query := `
         UPDATE tasks
         SET
             title = $2,
@@ -182,24 +182,24 @@ func (r *postgresRepository) Update(ctx context.Context, task *entity.Task) erro
         WHERE id = $1
     `
 
-    _, err := r.conn.Exec(
-        ctx,
-        query,
-        task.ID,
-        task.Title,
-        task.Description,
-        task.Status,
-        task.Assignee,
-        task.UpdatedAt,
-    )
+	_, err := r.conn.Exec(
+		ctx,
+		query,
+		task.ID,
+		task.Title,
+		task.Description,
+		task.Status,
+		task.Assignee,
+		task.UpdatedAt,
+	)
 
-    return err
+	return err
 }
 
 func (r *postgresRepository) Delete(ctx context.Context, id uuid.UUID) error {
-    query := `DELETE FROM tasks WHERE id = $1`
+	query := `DELETE FROM tasks WHERE id = $1`
 
-    _, err := r.conn.Exec(ctx, query, id)
+	_, err := r.conn.Exec(ctx, query, id)
 
-    return err
+	return err
 }

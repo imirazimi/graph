@@ -23,6 +23,7 @@ help:
 	@echo " make test					- Run tests"
 	@echo " make coverage			    - Generate coverage"
 	@echo " make bench					- Run benchmarks"
+	@echo " make fmt					- Format Project"
 
 deps:
 	go mod tidy
@@ -56,3 +57,5 @@ test:
 coverage:
 	go test ./... -coverprofile=coverage.out
 	go tool cover -func=coverage.out
+fmt:
+	go fmt ./...
